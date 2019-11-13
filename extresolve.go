@@ -46,9 +46,9 @@ func init() {
 		},
 	}
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
+		cli.Int64Flag{
 			Name:  "count, c",
-			Value: "10",
+			Value: 10,
 			Usage: "quantity checks",
 		},
 		cli.StringFlag{
@@ -68,15 +68,19 @@ func init() {
 			Required: true,
 			Usage:    "region for checks",
 		},
-		cli.StringFlag{
+		cli.Int64Flag{
 			Name:  "timeout, t",
-			Value: "3",
+			Value: 3,
 			Usage: "timeout for check",
 		},
-		cli.StringFlag{
+		cli.Int64Flag{
 			Name:  "timeout-get-dns-list",
-			Value: "30",
+			Value: 30,
 			Usage: "timeout for get dns from public-dns.info service",
+		},
+		cli.BoolFlag{
+			Name:  "detail, d",
+			Usage: "more info about dns servers",
 		},
 	}
 	// Tabular settings
@@ -84,25 +88,25 @@ func init() {
 	tab.Col("DNS", "DNS server", 20)
 	tab.Col("Name", "DNS name", 50)
 	tab.Col("City", "DNS city", 20)
-	tab.Col("Dnssec", "DNS security", 5)
-	tab.Col("Reliability", "DNS Reliability", 5)
+	tab.Col("Dnssec", "DNS security", 12)
+	tab.Col("Reliability", "DNS Reliability", 15)
 	tab.Col("Result", "DNS responce", 0)
 }
 
 func chechHost(c *cli.Context) {
-	var count int = c.Int("count")
+	count := c.Int("count")
 
-	var protocol string = c.String("protocol")
+	protocol := c.String("protocol")
 
-	var host string = c.String("host")
+	host := c.String("host")
 
-	var geo string = c.String("region")
+	geo := c.String("region")
 
-	var timeout int = c.Int("timeout")
+	timeout := c.Int("timeout")
 
-	var timeoutGetDns int = c.Int("timeout-get-dns-list")
+	timeoutGetDns := c.Int("timeout-get-dns-list")
 
-	format := tab.Print("DNS", "Name", "City", "Result")
+	detail := c.Bool("detail")
 
 	var httpClient = &http.Client{
 		Timeout: time.Duration(timeoutGetDns) * time.Second,
@@ -111,6 +115,15 @@ func chechHost(c *cli.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	f := func(bool) string {
+		if detail {
+			return tab.Print("DNS", "Name", "City", "Dnssec", "Reliability", "Result")
+		} else {
+			return tab.Print("DNS", "Name", "City", "Result")
+		}
+	}
+	format := f(detail)
+
 	if body, err := ioutil.ReadAll(resp.Body); err == nil {
 		var dnsHosts = DNS{}
 		if err = json.Unmarshal(body, &dnsHosts); err == nil {
@@ -130,7 +143,12 @@ func chechHost(c *cli.Context) {
 				for _, ip := range ips {
 					resolveHost = resolveHost + " " + ip.String()
 				}
-				fmt.Printf(format, row.IP, row.Name, row.City, resolveHost)
+				if detail {
+					fmt.Printf(format, row.IP, row.Name, row.City, row.Dnssec, row.Reliability, resolveHost)
+				} else {
+					fmt.Printf(format, row.IP, row.Name, row.City, resolveHost)
+				}
+
 				if (id + 1) == count {
 					break
 				}
