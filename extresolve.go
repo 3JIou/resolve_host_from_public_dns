@@ -86,7 +86,7 @@ func init() {
 	// Tabular settings
 	tab = tabular.New()
 	tab.Col("DNS", "DNS server", 20)
-	tab.Col("Name", "DNS name", 50)
+	tab.Col("Name", "DNS name", 60)
 	tab.Col("City", "DNS city", 20)
 	tab.Col("Dnssec", "DNS security", 12)
 	tab.Col("Reliability", "DNS Reliability", 15)
