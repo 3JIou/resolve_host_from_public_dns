@@ -89,8 +89,8 @@ func init() {
 	tab.Col("Name", "DNS name", 60)
 	tab.Col("City", "DNS city", 20)
 	tab.Col("Dnssec", "DNS security", 12)
-	tab.Col("Reliability", "DNS Reliability", 15)
-	tab.Col("Result", "DNS responce", 0)
+	tab.Col("Reliability", "DNS reliability", 15)
+	tab.Col("Result", "DNS response", 0)
 }
 
 func chechHost(c *cli.Context) {
