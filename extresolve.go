@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/InVisionApp/tabular"
+	"github.com/alexeyco/simpletable"
 	"github.com/swaggo/cli"
 	"io/ioutil"
 	"log"
@@ -15,7 +15,6 @@ import (
 )
 
 var app = cli.NewApp()
-var tab tabular.Table
 
 type DnsRecord struct {
 	IP          string  `json:"ip"`
@@ -25,7 +24,12 @@ type DnsRecord struct {
 	Reliability float64 `json:"reliability"`
 }
 
+type Header *simpletable.Header
+
 func chechHost(c *cli.Context) (err error) {
+	// Tab
+	tab := simpletable.New()
+
 	count := c.Int("count")
 
 	protocol := c.String("protocol")
@@ -47,14 +51,6 @@ func chechHost(c *cli.Context) (err error) {
 	if err != nil {
 		return error(err)
 	}
-	f := func(bool) string {
-		if detail {
-			return tab.Print("DNS", "Name", "City", "Dnssec", "Reliability", "Result")
-		} else {
-			return tab.Print("DNS", "Name", "City", "Result")
-		}
-	}
-	format := f(detail)
 
 	if body, err := ioutil.ReadAll(resp.Body); err == nil {
 		var dnsHosts []DnsRecord
@@ -76,15 +72,51 @@ func chechHost(c *cli.Context) (err error) {
 					resolveHost = resolveHost + " " + ip.String()
 				}
 				if detail {
-					fmt.Printf(format, record.IP, record.Name, record.City, record.Dnssec, record.Reliability, resolveHost)
+					tab.Header = &simpletable.Header{
+						Cells: []*simpletable.Cell{
+							{Align: simpletable.AlignCenter, Text: "DNS"},
+							{Align: simpletable.AlignCenter, Text: "Name"},
+							{Align: simpletable.AlignCenter, Text: "City"},
+							{Align: simpletable.AlignCenter, Text: "Dnssec"},
+							{Align: simpletable.AlignCenter, Text: "Reliability"},
+							{Align: simpletable.AlignCenter, Text: "Result"},
+						},
+					}
+					r := []*simpletable.Cell{
+						{Align: simpletable.AlignLeft, Text: fmt.Sprintf("%s", record.IP)},
+						{Align: simpletable.AlignCenter, Text: fmt.Sprintf("%s", record.Name)},
+						{Align: simpletable.AlignLeft, Text: fmt.Sprintf("%s", record.City)},
+						{Align: simpletable.AlignCenter, Text: fmt.Sprintf("%t", record.Dnssec)},
+						{Align: simpletable.AlignCenter, Text: fmt.Sprintf("%f", record.Reliability)},
+						{Align: simpletable.AlignRight, Text: fmt.Sprintf("%s", resolveHost)},
+					}
+
+					tab.Body.Cells = append(tab.Body.Cells, r)
 				} else {
-					fmt.Printf(format, record.IP, record.Name, record.City, resolveHost)
+					tab.Header = &simpletable.Header{
+						Cells: []*simpletable.Cell{
+							{Align: simpletable.AlignCenter, Text: "DNS"},
+							{Align: simpletable.AlignCenter, Text: "Name"},
+							{Align: simpletable.AlignCenter, Text: "City"},
+							{Align: simpletable.AlignCenter, Text: "Result"},
+						},
+					}
+					r := []*simpletable.Cell{
+						{Align: simpletable.AlignRight, Text: fmt.Sprintf("%s", record.IP)},
+						{Align: simpletable.AlignRight, Text: fmt.Sprintf("%s", record.Name)},
+						{Align: simpletable.AlignRight, Text: fmt.Sprintf("%s", record.City)},
+						{Align: simpletable.AlignRight, Text: fmt.Sprintf("%s", resolveHost)},
+					}
+
+					tab.Body.Cells = append(tab.Body.Cells, r)
 				}
 
 				if (id + 1) == count {
 					break
 				}
 			}
+			tab.SetStyle(simpletable.StyleCompactLite)
+			fmt.Println(tab.String())
 		} else {
 			return error(err)
 		}
@@ -148,15 +180,6 @@ func main() {
 			Usage: "more info about dns servers",
 		},
 	}
-	// Tabular settings
-	tab = tabular.New()
-	tab.Col("DNS", "DNS server", 20)
-	tab.Col("Name", "DNS name", 60)
-	tab.Col("City", "DNS city", 20)
-	tab.Col("Dnssec", "DNS security", 12)
-	tab.Col("Reliability", "DNS reliability", 15)
-	tab.Col("Result", "DNS response", 0)
-	//
 	app.Action = func(c *cli.Context) {
 		if err := chechHost(c); err != nil {
 			log.Fatal(err)
