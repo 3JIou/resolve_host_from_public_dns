@@ -5,6 +5,6 @@ Resolve host from public dns (geting from public-dns.info for setted region)
 
 1. git clone
 2. cd ./resolve_host_from_public_dns
-3. go buld ./main.go
+3. go buld ./extresolve.go
 4. extresolve -h
 5. ???
