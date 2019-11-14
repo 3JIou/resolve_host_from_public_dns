@@ -32,8 +32,6 @@ func chechHost(c *cli.Context) (err error) {
 
 	count := c.Int("count")
 
-	protocol := c.String("protocol")
-
 	host := c.String("host")
 
 	geo := c.String("region")
@@ -57,16 +55,10 @@ func chechHost(c *cli.Context) (err error) {
 		if err = json.Unmarshal(body, &dnsHosts); err == nil {
 			for id, record := range dnsHosts {
 				var resolver *net.Resolver
-				resolver = &net.Resolver{
-					PreferGo: true,
-					Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-						d := net.Dialer{
-							Timeout: time.Duration(timeout) * time.Second,
-						}
-						return d.DialContext(ctx, protocol, net.JoinHostPort(record.IP, "53"))
-					},
-				}
-				ips, _ := resolver.LookupIPAddr(context.Background(), host)
+
+				ctx, _ := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+				ips, _ := resolver.LookupIPAddr(ctx, host)
+
 				var resolveHost = ""
 				for _, ip := range ips {
 					resolveHost = resolveHost + " " + ip.String()
@@ -147,11 +139,6 @@ func main() {
 			Name:  "count, c",
 			Value: 10,
 			Usage: "quantity checks",
-		},
-		cli.StringFlag{
-			Name:  "protocol",
-			Value: "udp",
-			Usage: "connect protocol (udp or tcp)",
 		},
 		cli.StringFlag{
 			Name:     "host, n",
